@@ -376,6 +376,10 @@ alias dphp54='docker exec -it php54 /bin/sh'
 alias dmysql='docker exec -it mysql /bin/bash'
 alias dredis='docker exec -it redis /bin/sh'
 ```
+如果是Windows，在powershell配置文件加上（使用`echo $profile`命令可查看文件位置）：
+```bash
+function dphp { docker exec -it php /bin/sh }
+```
 下次进入容器就非常快捷了，如进入php容器：
 ```bash
 $ dphp

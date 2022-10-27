@@ -402,7 +402,10 @@ alias dphp54='docker exec -it php54 /bin/sh'
 alias dmysql='docker exec -it mysql /bin/bash'
 alias dredis='docker exec -it redis /bin/sh'
 ```
-
+If Windows, add to the powershell configuration file (use the `echo $profile` command to see the file location).
+```bash
+function dphp { docker exec -it php /bin/sh }
+```
 The next time you enter the container, it is very fast, such as entering the php container:
 
 ```bash
