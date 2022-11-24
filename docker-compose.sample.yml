@@ -39,6 +39,8 @@ services:
     container_name: php
     expose:
       - 9501
+    ports:
+      - "${SUPERVISOR_HOST_PORT_C}:9001"
     extra_hosts:
       - "www.site1.com:172.17.0.1"
     volumes:
@@ -47,7 +49,15 @@ services:
       - ${PHP_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
       - ${PHP_LOG_DIR}:/var/log/php
       - ${DATA_DIR}/composer:/tmp/composer
+      - ${SUPERVISOR_LOG}:/var/log/supervisor/:rw
+      - ${SUPERVISOR_CONFIG}:/etc/supervisor/conf.d/:rw
+      - ${SUPERVISOR_CONF_FILE}:/etc/supervisor/supervisord.conf:ro
     restart: always
+    command:
+      - /bin/sh
+      - -c
+      - |
+        supervisord -n -c /etc/supervisor/supervisord.conf
     cap_add:
       - SYS_PTRACE
     networks:
