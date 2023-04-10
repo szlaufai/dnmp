@@ -4,3 +4,5 @@
 !localhost.conf
 !product-api.conf
 !gougucms.conf
+!frp.conf
+!git.conf
