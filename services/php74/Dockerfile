@@ -18,8 +18,6 @@ ADD ./extensions/install-php-extensions  /usr/local/bin/
 
 RUN chmod uga+x /usr/local/bin/install-php-extensions
 
-RUN apk --no-cache add git
-RUN apk --no-cache add dcron
 RUN apk --no-cache add tzdata \
     && cp "/usr/share/zoneinfo/$TZ" /etc/localtime \
     && echo "$TZ" > /etc/timezone
@@ -39,5 +37,8 @@ ENV COMPOSER_HOME=/tmp/composer
 # php image's www-data user uid & gid are 82, change them to 1000 (primary user)
 RUN apk --no-cache add shadow && usermod -u 1000 www-data && groupmod -g 1000 www-data
 
+# DIY Install
+RUN apk --no-cache add git
+RUN apk --no-cache add dcron
 
 WORKDIR /www
