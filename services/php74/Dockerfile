@@ -39,5 +39,6 @@ RUN apk --no-cache add shadow && usermod -u 1000 www-data && groupmod -g 1000 ww
 
 # DIY Install
 RUN apk --no-cache add git
+RUN apk --no-cache add supervisor
 
 WORKDIR /www
