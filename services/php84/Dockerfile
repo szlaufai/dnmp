@@ -26,5 +26,8 @@ RUN curl -sSLf -o /usr/local/bin/install-php-extensions https://github.com/mloca
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 ENV COMPOSER_HOME=/tmp/composer
 
+# DIY Install
+RUN apk --no-cache add git
+
 # Set work directory
 WORKDIR /www

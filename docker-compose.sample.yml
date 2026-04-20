@@ -53,7 +53,7 @@ services:
     build:
       context: ./services/php84
       args:
-        PHP_VERSION: php:${PHP84_VERSION}-fpm
+        PHP_VERSION: php:${PHP84_VERSION}-fpm-alpine
         CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
         COMPOSER_URL: ${COMPOSER_URL}
         PHP_EXTENSIONS: ${PHP84_EXTENSIONS}
@@ -61,9 +61,9 @@ services:
     container_name: php84
     volumes:
       - ${SOURCE_DIR}:/www/:rw
-      - ${PHP80_PHP_CONF_FILE}:/usr/local/etc/php/php.ini:ro
-      - ${PHP80_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
-      - ${PHP80_LOG_DIR}:/var/log/php
+      - ${PHP84_PHP_CONF_FILE}:/usr/local/etc/php/php.ini:ro
+      - ${PHP84_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
+      - ${PHP84_LOG_DIR}:/var/log/php
       - ${DATA_DIR}/composer:/tmp/composer
     restart: always
     cap_add:
