@@ -49,27 +49,49 @@ services:
     networks:
       - default
 
-  php82:
+  php84:
     build:
-      context: ./services/php82
+      context: ./services/php84
       args:
-        DEBIAN_MIRROR_DOMAIN: deb.debian.org
-        PHP_EXTENSIONS: "$PHP82_EXTENSIONS"
+        PHP_VERSION: php:${PHP84_VERSION}-fpm
+        CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
+        COMPOSER_URL: ${COMPOSER_URL}
+        PHP_EXTENSIONS: ${PHP84_EXTENSIONS}
         TZ: "$TZ"
-    container_name: php82
-    expose:
-      - 9501
+    container_name: php84
     volumes:
       - ${SOURCE_DIR}:/www/:rw
-      - ${PHP82_PHP_CONF_FILE}:/usr/local/etc/php/php.ini
-      - ${PHP82_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf
-      - ${PHP82_LOG_DIR}:/var/log/php
-      - ${PHP82_DATA_COMPOSER}:/tmp/composer
+      - ${PHP80_PHP_CONF_FILE}:/usr/local/etc/php/php.ini:ro
+      - ${PHP80_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
+      - ${PHP80_LOG_DIR}:/var/log/php
+      - ${DATA_DIR}/composer:/tmp/composer
     restart: always
     cap_add:
       - SYS_PTRACE
     networks:
       - default
+
+#  php82:
+#    build:
+#      context: ./services/php82
+#      args:
+#        DEBIAN_MIRROR_DOMAIN: deb.debian.org
+#        PHP_EXTENSIONS: "$PHP82_EXTENSIONS"
+#        TZ: "$TZ"
+#    container_name: php82
+#    expose:
+#      - 9501
+#    volumes:
+#      - ${SOURCE_DIR}:/www/:rw
+#      - ${PHP82_PHP_CONF_FILE}:/usr/local/etc/php/php.ini
+#      - ${PHP82_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf
+#      - ${PHP82_LOG_DIR}:/var/log/php
+#      - ${PHP82_DATA_COMPOSER}:/tmp/composer
+#    restart: always
+#    cap_add:
+#      - SYS_PTRACE
+#    networks:
+#      - default
 
 #  php80:
 #    build:
