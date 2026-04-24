@@ -2,7 +2,7 @@ ARG PHP_VERSION
 FROM ${PHP_VERSION}
 
 ARG TZ
-ARG PHP84_EXTENSIONS
+ARG PHP_EXTENSIONS
 ARG CONTAINER_PACKAGE_URL
 
 ENV TZ=${TZ}
@@ -20,7 +20,7 @@ RUN apk --no-cache add tzdata curl \
 # Install PHP extensions
 RUN curl -sSLf -o /usr/local/bin/install-php-extensions https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions \
     && chmod +x /usr/local/bin/install-php-extensions \
-    && install-php-extensions $(echo $PHP84_EXTENSIONS | tr ',' ' ')
+    && install-php-extensions $(echo $PHP_EXTENSIONS | tr ',' ' ')
 
 # Install composer and change its cache home
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
