@@ -28,6 +28,7 @@ ENV COMPOSER_HOME=/tmp/composer
 
 # DIY Install
 RUN apk --no-cache add git
+RUN apk --no-cache add supervisor
 
 # Set work directory
 WORKDIR /www
