@@ -90,8 +90,8 @@ local `docker-compose.yml`.
 4. Validate the new image with the server's mounted configuration:
 
    ```sh
-   docker compose -f docker-compose.yml -f compose.php74-image.yml run --rm --no-deps --no-build php php-fpm -t
-   docker compose -f docker-compose.yml -f compose.php74-image.yml run --rm --no-deps --no-build php php -m
+   docker compose -f docker-compose.yml -f compose.php74-image.yml run --rm --no-deps php php-fpm -t
+   docker compose -f docker-compose.yml -f compose.php74-image.yml run --rm --no-deps php php -m
    ```
 
 5. After application acceptance testing and scheduling a brief interruption,

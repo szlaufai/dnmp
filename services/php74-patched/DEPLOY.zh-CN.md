@@ -19,6 +19,9 @@ Supervisor；Imagick 使用 3.7.0，需测试原应用的图像处理行为。
 
 先确认 `docker compose version`，以下覆盖配置需要 Compose >= 2.24.4。
 保留服务器原有的 `docker-compose.yml`、`.env`、业务代码和 Supervisor 配置。
+如果使用 `sudo docker`，先将下面的 `PHP74_IMAGE=...` 写入项目 `.env`；
+`sudo` 默认不保留通过 `export` 设置的变量。下方 Docker 命令按需添加 `sudo`。
+`run` 不支持 `--no-build`；覆盖配置已删除 `build`，因此检查阶段不会编译。
 部署会重启 PHP 及其 Supervisor 队列进程，先等待重要任务完成。
 
 ```sh
@@ -35,8 +38,8 @@ docker image tag "$(docker inspect php --format '{{.Image}}')" dnmp/php74:before
 docker compose -f docker-compose.yml -f compose.php74-image.yml pull php
 
 # 检查新镜像与服务器现有挂载配置是否兼容。
-docker compose -f docker-compose.yml -f compose.php74-image.yml run --rm --no-deps --no-build php php-fpm -t
-docker compose -f docker-compose.yml -f compose.php74-image.yml run --rm --no-deps --no-build php php -m
+docker compose -f docker-compose.yml -f compose.php74-image.yml run --rm --no-deps php php-fpm -t
+docker compose -f docker-compose.yml -f compose.php74-image.yml run --rm --no-deps php php -m
 
 # 在测试环境验收业务后，替换线上 PHP 容器。
 docker compose -f docker-compose.yml -f compose.php74-image.yml up -d --no-deps --no-build php
