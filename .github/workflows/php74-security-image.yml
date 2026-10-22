@@ -24,11 +24,11 @@ jobs:
     env:
       PHP_EXTENSIONS: pdo_mysql,mysqli,redis,mbstring,gd,curl,opcache,xdebug,pcntl,bcmath,calendar,zip,mongodb,imagick
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
-      - name: Build complete amd64 image
+      - name: Set image names and verify sources
         shell: bash
         run: |
           set -euo pipefail
@@ -36,32 +36,60 @@ jobs:
           tag="security-712e60f-${GITHUB_SHA}"
           echo "PHP74_IMAGE=$image:$tag" >> "$GITHUB_ENV"
           echo "PHP74_RELEASE_IMAGE=$image:security-712e60f" >> "$GITHUB_ENV"
+          echo "PHP74_CORE_IMAGE=$image:core-712e60f" >> "$GITHUB_ENV"
           (cd services/php74-patched && shasum -a 256 -c SHA256SUMS)
+
+      - name: Login to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      - name: Build and cache patched PHP core
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull "$PHP74_CORE_IMAGE" || true
+          docker build --platform linux/amd64 --target php-core \
+            --cache-from "$PHP74_CORE_IMAGE" \
+            --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PHP_BUILD_JOBS=4 \
+            -t "$PHP74_CORE_IMAGE" services/php74-patched
+          docker run --rm "$PHP74_CORE_IMAGE" php -v
+          docker run --rm "$PHP74_CORE_IMAGE" php-fpm -t
+          docker push "$PHP74_CORE_IMAGE"
+
+      - name: Build complete amd64 image
+        shell: bash
+        run: |
+          set -euo pipefail
           docker build --platform linux/amd64 \
-            --build-arg PHP_BUILD_JOBS=2 \
+            --cache-from "$PHP74_CORE_IMAGE" \
+            --build-arg PHP_BUILD_JOBS=4 \
             --build-arg PHP_EXTENSIONS="$PHP_EXTENSIONS" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
-            -t "$image:$tag" services/php74-patched
+            -t "$PHP74_IMAGE" services/php74-patched
 
       - name: Verify PHP, extensions, OOM behavior and FPM
         shell: bash
         run: bash scripts/test-php74-image.sh "$PHP74_IMAGE"
 
       - name: Publish verified image to GHCR
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-          trap 'docker logout ghcr.io' EXIT
           docker push "$PHP74_IMAGE"
           docker tag "$PHP74_IMAGE" "$PHP74_RELEASE_IMAGE"
           docker push "$PHP74_RELEASE_IMAGE"
+          digest=$(docker image inspect "$PHP74_IMAGE" --format '{{index .RepoDigests 0}}')
           {
             echo '### Verified PHP 7.4 image (linux/amd64)'
             echo "Image: \`$PHP74_IMAGE\`"
+            echo "Digest: \`$digest\`"
             echo 'PHP security source: `712e60f9edfd03f0960fc4fc3c2c375f42b90aa2`'
             echo 'Fixes: CVE-2026-109618 and CVE-2026-109619'
-            echo 'Use the immutable image above in PHP74_IMAGE on the server.'
+            echo 'Use the digest above in PHP74_IMAGE on the server.'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Logout of GHCR
+        if: always()
+        run: docker logout ghcr.io

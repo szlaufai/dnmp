@@ -28,7 +28,7 @@ that a third-party image is patched: retain build logs and image digests.
 
 ## Build and publish on GitHub
 
-The `PHP 7.4 security image` workflow uses a native amd64 Ubuntu runner and two
+The `PHP 7.4 security image` workflow uses a native amd64 Ubuntu runner and four
 compiler jobs. It builds PHP and every extension, tests the resulting image,
 then publishes it to GHCR using the job's `GITHUB_TOKEN`. No registry password
 needs to be stored in this repository. Publication never deploys a server.
@@ -40,7 +40,10 @@ it can also be run using the Actions page's **Run workflow** button.
 Default extensions match the current PHP 7.4 environment: pdo_mysql, mysqli,
 redis, mbstring, gd, curl, opcache, xdebug, pcntl, bcmath, calendar, zip, mongodb,
 imagick. PECL versions are pinned to redis 5.3.7, xdebug 2.9.2, mongodb 1.20.1
-and imagick 3.7.0. Imagick differs from the old script's 3.4.4; test image
+and imagick 3.7.0. Their source archives are vendored and checksummed to avoid
+relying on PECL REST metadata during builds. The core is cached separately in
+GHCR under `core-712e60f`; deploy only a final `security-...` image.
+Imagick differs from the old script's 3.4.4; test image
 processing before production use. The old preload of Alpine 3.13 libiconv is
 unnecessary: this PHP runtime is already built against GNU libiconv.
 

@@ -5,7 +5,7 @@
 # Local modifications apply the official PHP 7.4 security backport.
 #
 
-FROM alpine:3.16
+FROM alpine:3.16 AS php-core
 
 # dependencies required for running "phpize"
 # these get automatically installed and removed by "docker-php-ext-*" (unless they're already installed)
@@ -271,24 +271,34 @@ EXPOSE 9000
 CMD ["php-fpm"]
 
 # Complete runtime image; production hosts only pull this finished image.
+FROM php-core AS runtime
+ARG PHP_BUILD_JOBS=4
 ARG TZ=Asia/Shanghai
 ARG PHP_EXTENSIONS="pdo_mysql,mysqli,redis,mbstring,gd,curl,opcache,xdebug,pcntl,bcmath,calendar,zip,mongodb,imagick"
 ENV TZ=${TZ}
 COPY install-php-extensions /usr/local/bin/install-php-extensions
+COPY extensions /tmp/php-extension-archives
 RUN set -eux; \
     chmod +x /usr/local/bin/install-php-extensions; \
     export IPE_PROCESSOR_COUNT="$PHP_BUILD_JOBS"; \
+    mkdir -p /tmp/src; \
+    for archive in /tmp/php-extension-archives/*.tgz; do \
+        tar -xzf "$archive" -C /tmp/src; \
+        directory="/tmp/src/$(basename "$archive" .tgz)"; \
+        mv /tmp/src/package.xml "$directory/package.xml"; \
+    done; \
     extensions=""; \
     for extension in $(echo "$PHP_EXTENSIONS" | tr ',' ' '); do \
         case "$extension" in \
-            redis) extension=redis-5.3.7 ;; \
-            xdebug) extension=xdebug-2.9.2 ;; \
-            mongodb) extension=mongodb-1.20.1 ;; \
-            imagick) extension=imagick-3.7.0 ;; \
+            redis) extension=/tmp/src/redis-5.3.7 ;; \
+            xdebug) extension=/tmp/src/xdebug-2.9.2 ;; \
+            mongodb) extension=/tmp/src/mongodb-1.20.1 ;; \
+            imagick) extension=/tmp/src/imagick-3.7.0 ;; \
         esac; \
         extensions="$extensions $extension"; \
     done; \
     install-php-extensions $extensions; \
+    rm -rf /tmp/php-extension-archives; \
     apk add --no-cache tzdata git supervisor shadow; \
     cp "/usr/share/zoneinfo/$TZ" /etc/localtime; \
     echo "$TZ" > /etc/timezone; \
