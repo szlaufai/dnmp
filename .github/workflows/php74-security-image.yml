@@ -1,0 +1,67 @@
+name: PHP 7.4 security image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [influen, master, feat/php74-security-image]
+    paths:
+      - .github/workflows/php74-security-image.yml
+      - services/php74-patched/**
+      - scripts/test-php74-image.sh
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: php74-security-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      PHP_EXTENSIONS: pdo_mysql,mysqli,redis,mbstring,gd,curl,opcache,xdebug,pcntl,bcmath,calendar,zip,mongodb,imagick
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Build complete amd64 image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/dnmp-php74"
+          tag="security-712e60f-${GITHUB_SHA}"
+          echo "PHP74_IMAGE=$image:$tag" >> "$GITHUB_ENV"
+          echo "PHP74_RELEASE_IMAGE=$image:security-712e60f" >> "$GITHUB_ENV"
+          (cd services/php74-patched && shasum -a 256 -c SHA256SUMS)
+          docker build --platform linux/amd64 \
+            --build-arg PHP_BUILD_JOBS=2 \
+            --build-arg PHP_EXTENSIONS="$PHP_EXTENSIONS" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            -t "$image:$tag" services/php74-patched
+
+      - name: Verify PHP, extensions, OOM behavior and FPM
+        shell: bash
+        run: bash scripts/test-php74-image.sh "$PHP74_IMAGE"
+
+      - name: Publish verified image to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          trap 'docker logout ghcr.io' EXIT
+          docker push "$PHP74_IMAGE"
+          docker tag "$PHP74_IMAGE" "$PHP74_RELEASE_IMAGE"
+          docker push "$PHP74_RELEASE_IMAGE"
+          {
+            echo '### Verified PHP 7.4 image (linux/amd64)'
+            echo "Image: \`$PHP74_IMAGE\`"
+            echo 'PHP security source: `712e60f9edfd03f0960fc4fc3c2c375f42b90aa2`'
+            echo 'Fixes: CVE-2026-109618 and CVE-2026-109619'
+            echo 'Use the immutable image above in PHP74_IMAGE on the server.'
+          } >> "$GITHUB_STEP_SUMMARY"

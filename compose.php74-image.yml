@@ -1,0 +1,6 @@
+# Compose >= 2.24.4 is required for !reset. Use with docker-compose.yml.
+services:
+  php:
+    build: !reset null
+    image: ${PHP74_IMAGE:?Set PHP74_IMAGE to the verified GHCR image from Actions}
+    platform: linux/amd64
