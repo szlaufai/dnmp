@@ -101,13 +101,16 @@ local `docker-compose.yml`.
    docker compose -f docker-compose.yml -f compose.php74-image.yml up -d --no-deps --no-build php
    docker compose -f docker-compose.yml -f compose.php74-image.yml exec php php -v
    docker compose -f docker-compose.yml -f compose.php74-image.yml exec php supervisorctl status
+   docker compose -f docker-compose.yml -f compose.php74-image.yml exec nginx nginx -t
+   docker compose -f docker-compose.yml -f compose.php74-image.yml exec nginx nginx -s reload
    docker compose -f docker-compose.yml -f compose.php74-image.yml logs --tail=100 php
    ```
 
 6. Persist the chosen `PHP74_IMAGE` in the server's `.env`. Include the override
    on future Compose operations; running the old build configuration can revert
    this service to an unpatched image. Verify login, uploads, image processing,
-   database/Redis connectivity and every queue worker.
+   database/Redis connectivity and every queue worker. Reloading Nginx refreshes
+   the upstream container address if recreating PHP changed its IP.
 
 Rollback, if application compatibility fails:
 
