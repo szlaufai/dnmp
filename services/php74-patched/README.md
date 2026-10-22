@@ -64,62 +64,17 @@ commit credentials to `.env` or workflow files.
 
 ## Deploy on the amd64 Ubuntu server
 
-Requires Docker Compose >= 2.24.4 for the `!reset` override. Run `docker compose
-version` first. For older Compose, update the Compose plugin or manually replace
-the `php` service's entire `build` mapping with an `image` field in the server's
-local `docker-compose.yml`.
+Follow [the production deployment and rollback guide](DEPLOY.zh-CN.md). Replace
+`build` with the fixed final image in the **existing PHP service**, preserving
+its service name, `container_name: php`, port mappings, volumes and command.
+The server's original service may be named `php74`, unlike this checkout's
+local service named `php`; inspect the existing container's Compose labels first.
 
-1. Copy `compose.php74-image.yml` to the server's project directory and keep the
-   server's existing `docker-compose.yml`, `.env` and Supervisor configuration.
-2. Set the verified image from the successful Actions summary:
+Do not use `compose.php74-image.yml` against a production configuration whose
+original service is `php74`: that example targets a service named `php` and
+would create an additional container. Production can use the existing Compose
+file directly. No PHP74_IMAGE environment variable is required in this approach.
 
-   ```sh
-   export PHP74_IMAGE=ghcr.io/szlaufai/dnmp-php74:security-712e60f-REPLACE_WITH_BUILD_COMMIT
-   ```
-
-3. Preserve the currently running image for rollback. Run this before replacing
-   the container, and retain a copy of the server's current configuration:
-
-   ```sh
-   docker image tag "$(docker inspect php --format '{{.Image}}')" dnmp/php74:before-security-update
-   docker compose -f docker-compose.yml -f compose.php74-image.yml config --format json \
-     | python3 -c 'import json,sys; s=json.load(sys.stdin)["services"]["php"]; assert not s.get("build"); print(s["image"])'
-   docker compose -f docker-compose.yml -f compose.php74-image.yml pull php
-   ```
-
-4. Validate the new image with the server's mounted configuration:
-
-   ```sh
-   docker compose -f docker-compose.yml -f compose.php74-image.yml run --rm --no-deps php php-fpm -t
-   docker compose -f docker-compose.yml -f compose.php74-image.yml run --rm --no-deps php php -m
-   ```
-
-5. After application acceptance testing and scheduling a brief interruption,
-   replace only PHP 7.4. Supervisor queue workers in this service also restart:
-
-   ```sh
-   docker compose -f docker-compose.yml -f compose.php74-image.yml up -d --no-deps --no-build php
-   docker compose -f docker-compose.yml -f compose.php74-image.yml exec php php -v
-   docker compose -f docker-compose.yml -f compose.php74-image.yml exec php supervisorctl status
-   docker compose -f docker-compose.yml -f compose.php74-image.yml exec nginx nginx -t
-   docker compose -f docker-compose.yml -f compose.php74-image.yml exec nginx nginx -s reload
-   docker compose -f docker-compose.yml -f compose.php74-image.yml logs --tail=100 php
-   ```
-
-6. Persist the chosen `PHP74_IMAGE` in the server's `.env`. Include the override
-   on future Compose operations; running the old build configuration can revert
-   this service to an unpatched image. Verify login, uploads, image processing,
-   database/Redis connectivity and every queue worker. Reloading Nginx refreshes
-   the upstream container address if recreating PHP changed its IP.
-
-Rollback, if application compatibility fails:
-
-```sh
-PHP74_IMAGE=dnmp/php74:before-security-update docker compose \
-  -f docker-compose.yml -f compose.php74-image.yml up -d --no-deps --no-build php
-```
-
-The rollback image remains vulnerable: restrict its exposure while investigating.
-The Alpine 3.16 base and PHP 7.4 are end of life. This rebuild fixes these two
-specific PHP CVEs, not all historical OS/runtime vulnerabilities. Plan migration
-to the already available PHP 8.4 service.
+Use the image digest recorded in the guide. The core image is a build cache,
+not the complete deployment image. Keep the old image and configuration for
+rollback and validate the application and Supervisor queues after replacement.
